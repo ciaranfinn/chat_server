@@ -1,0 +1,1 @@
+%{"registry": {:git, "https://github.com/elixir-lang/registry.git", "51d651ad4a0b2323122061a484cc7d0f7627b779", []}}
