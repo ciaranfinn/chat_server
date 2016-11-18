@@ -34,7 +34,7 @@ defmodule Server.Message do
   end
 
   def process(  _ , "CHAT:" <> room_ref ) do
-    String.strip(room_ref)
+    IO.inspect Server.ChatRoom.all_members(String.strip(room_ref))
   end
 
   def process(  _ , "CLIENT_IP:" <> ip ) do
@@ -51,6 +51,7 @@ defmodule Server.Message do
 
   def process(  _ , "LEAVE_CHATROOM:" <> room_ref ) do
     String.strip(room_ref)
+    # handle_leave(socket, String.strip(room_ref))
   end
 
   def process( socket , _ ) do
@@ -64,10 +65,14 @@ defmodule Server.Message do
     read_line(socket)
     read_line(socket)
 
+    Server.ChatRoom.join(chatroom_name, 1)
     payload = "JOINED_CHATROOM: #{chatroom_name}\nSERVER_IP: #{ip_address}\nPORT: #{@port}\n"
     :gen_tcp.send(socket,payload)
-    ChatRoom.new(chatroom_name)
   end
+
+  # defp handle_leave( socket, chatroom_name) do
+  #
+  # end
 
 
   # --------------------- GET LOCAL IP -----------------------

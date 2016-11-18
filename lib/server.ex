@@ -20,7 +20,8 @@ defmodule Server do
 
     children = [
       worker(Task, [Server, :begin_listening, [String.to_integer(@port)]]),
-      supervisor(Task.Supervisor, [[name: Server.TaskSupervisor]])
+      supervisor(Task.Supervisor, [[name: Server.TaskSupervisor]]),
+      supervisor(Registry, [:duplicate, Server.ChatRoom])
     ]
     options = [strategy: :one_for_one, name: Server.Supervisor]
     Supervisor.start_link(children, options)
