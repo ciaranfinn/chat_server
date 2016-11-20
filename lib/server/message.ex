@@ -84,7 +84,7 @@ defmodule Server.Message do
     payload = "JOINED_CHATROOM: #{chatroom_name}\nSERVER_IP: #{ip_address}\nPORT: #{@port}\nROOM_REF: #{room_ref}\nJOIN_ID: #{join_id}\n"
     :gen_tcp.send(socket,payload)
 
-    notify_all(chatroom_name, client_name, "#{client_name} has joined this chatroom.")
+    notify_all(room_ref, client_name, "#{client_name} has joined this chatroom.")
   end
 
   defp handle_error(socket) do
