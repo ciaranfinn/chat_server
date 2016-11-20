@@ -78,7 +78,7 @@ defmodule Server.Message do
   # --------------------- HANDLERS -------------------------
 
   defp handle_hello_message(socket,text) do
-    payload = "HELO #{text}IP:#{ip_address}\nPort:#{@port}\nStudentID:13320900\n"
+    payload = "HELO #{text}\nIP:#{ip_address}\nPort:#{@port}\nStudentID:13320900\n"
     :gen_tcp.send(socket,payload)
   end
 
