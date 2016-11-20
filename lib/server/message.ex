@@ -59,8 +59,8 @@ defmodule Server.Message do
     handle_chatroom_leave(socket,String.strip(room_ref))
   end
 
-  def process( socket , error ) do
-    handle_error(socket, error)
+  def process( _ , error ) do
+    handle_error(error)
   end
 
 
@@ -87,7 +87,7 @@ defmodule Server.Message do
     notify_all(room_ref, client_name, "#{client_name} has joined this chatroom.")
   end
 
-  defp handle_error(socket, error) do
+  defp handle_error(error) do
     IO.puts error
   end
 
@@ -118,12 +118,11 @@ defmodule Server.Message do
     client_name = read_line(socket)
     chatrooms_of_client = Server.ChatRoom.part_of
     notify_all_of_disconnect(chatrooms_of_client,client_name)
-    :gen_tcp.close(socket)
   end
 
   defp notify_all_of_disconnect(chatrooms,client_name) do
-    chatrooms |> Enum.map(fn(room) -> Server.ChatRoom.leave(room)
-    notify_all(room, client_name, "#{client_name} has left this chatroom.")
+    chatrooms |> Enum.map(fn(room) -> notify_all(room, client_name, "#{client_name} has left this chatroom.")
+    Server.ChatRoom.leave(room)
     end)
   end
 
