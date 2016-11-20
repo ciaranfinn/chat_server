@@ -59,8 +59,8 @@ defmodule Server.Message do
     handle_chatroom_leave(socket,String.strip(room_ref))
   end
 
-  def process( socket , _ ) do
-    handle_error(socket)
+  def process( socket , error ) do
+    handle_error(socket, error)
   end
 
 
@@ -87,8 +87,8 @@ defmodule Server.Message do
     notify_all(room_ref, client_name, "#{client_name} has joined this chatroom.")
   end
 
-  defp handle_error(socket) do
-    IO.puts "Formatting Error"
+  defp handle_error(socket, error) do
+    IO.puts error
     :gen_tcp.close(socket)
   end
 
@@ -97,13 +97,14 @@ defmodule Server.Message do
     client_name = read_line(socket)
     Server.ChatRoom.leave(room_ref)
     # deregister PID from ChatRoom
-    payload = "LEFT_CHATROOM: #{room_ref}\nJOIN_ID: #{join_id}"
+    payload = "LEFT_CHATROOM: #{room_ref}\nJOIN_ID: #{join_id}\n"
     :gen_tcp.send(socket,payload)
+
     notify_all(room_ref, client_name, "#{client_name} has left this chatroom.")
 
     payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{client_name} has left this chatroom.\n\n"
     :gen_tcp.send(socket,payload)
-    
+
   end
 
   defp handle_chat_message(socket,room_ref) do
@@ -128,9 +129,7 @@ defmodule Server.Message do
   end
 
   defp notify_all(room_ref, client_name, message) do
-    IO.puts "notify all"
     payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{message}\n\n"
-    IO.puts payload
     Server.ChatRoom.broadcast(room_ref, fn members ->
       for { _, { _, socket} } <- members do
         :gen_tcp.send(socket,payload)
