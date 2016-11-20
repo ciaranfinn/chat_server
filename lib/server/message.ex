@@ -84,13 +84,11 @@ defmodule Server.Message do
     payload = "JOINED_CHATROOM: #{chatroom_name}\nSERVER_IP: #{ip_address}\nPORT: #{@port}\nROOM_REF: #{room_ref}\nJOIN_ID: #{join_id}\n"
     :gen_tcp.send(socket,payload)
 
-    chatroom_payload ="#{client_name} has joined this chatroom\n"
-    notify_all(chatroom_name, chatroom_payload)
+    notify_all(chatroom_name, client_name, "#{client_name} has joined this chatroom.")
   end
 
   defp handle_error(socket) do
-    payload = "ERROR_CODE:1\nERROR_DESCRIPTION:Unknown Message Format\n"
-    :gen_tcp.send(socket,payload)
+    IO.puts "Formatting Error"
     :gen_tcp.close(socket)
   end
 
@@ -99,18 +97,16 @@ defmodule Server.Message do
     client_name = read_line(socket)
     # deregister PID from ChatRoom
     Server.ChatRoom.leave(room_ref)
-    payload = "LEAVE_CHATROOM: #{room_ref}\nJOIN_ID: #{join_id}\n"
+    payload = "LEFT_CHATROOM: #{room_ref}\nJOIN_ID: #{join_id}"
     :gen_tcp.send(socket,payload)
-    chatroom_payload ="#{client_name} has left this chatroom\n"
-    notify_all(room_ref, chatroom_payload)
+    notify_all(room_ref,client_name, "#{client_name} has left this chatroom.")
   end
 
   defp handle_chat_message(socket,room_ref) do
     read_line(socket)
     client_name = read_line(socket)
     message = read_line(socket)
-    payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{message}\n\n"
-    notify_all(room_ref, payload)
+    notify_all(room_ref, client_name, message)
   end
 
   defp handle_socket_terminate(socket) do
@@ -121,18 +117,20 @@ defmodule Server.Message do
     :gen_tcp.close(socket)
   end
 
-
-  defp notify_all(room_ref, data) do
-    Server.ChatRoom.broadcast(room_ref, fn members ->
-      for { _, { _, socket} } <- members do
-        :gen_tcp.send(socket,data)
-      end
+  defp notify_all_of_disconnect(chatrooms,client_name) do
+    chatrooms |> Enum.map(fn(room) -> Server.ChatRoom.leave(room)
+    notify_all(room, client_name, "#{client_name} has left this chatroom.")
     end)
   end
 
-  defp notify_all_of_disconnect(chatrooms,client_name) do
-    chatrooms |> Enum.map(fn(room) -> Server.ChatRoom.leave(room)
-    notify_all(room, "#{client_name} has left this chatroom\n")
+  defp notify_all(room_ref, client_name, message) do
+    IO.puts "notify all"
+    payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{message}\n\n"
+    IO.puts payload
+    Server.ChatRoom.broadcast(room_ref, fn members ->
+      for { _, { _, socket} } <- members do
+        :gen_tcp.send(socket,payload)
+      end
     end)
   end
 
@@ -148,10 +146,10 @@ defmodule Server.Message do
 
   defp ip_address do
     # Find ip else list it
-    {:ok, [addr, _]} = :inet.ifget('en0',[:addr, :hwaddr])
-    elem(addr,1) |> Tuple.to_list |> Enum.join(".")
+    # {:ok, [addr, _]} = :inet.ifget('en0',[:addr, :hwaddr])
+    # elem(addr,1) |> Tuple.to_list |> Enum.join(".")
     # or
-    # @system_ip
+    @system_ip
   end
 
 end
