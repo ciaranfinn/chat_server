@@ -16,4 +16,8 @@ defmodule Server.ChatRoom do
     Registry.unregister(__MODULE__, room_name)
   end
 
+  def part_of do
+    Registry.keys(__MODULE__, self())
+  end
+
 end

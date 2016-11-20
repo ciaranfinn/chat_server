@@ -1,6 +1,6 @@
 defmodule Server.Message do
 
-  @system_ip "178.62.97.9"
+  @system_ip "138.68.168.23"
   @port Application.get_env(:server, :port)
 
   def read_line(client_socket) do
@@ -25,15 +25,13 @@ defmodule Server.Message do
 
   def process(  socket , "JOIN_CHATROOM:" <> room_ref ) do
     handle_new_member(socket,String.strip(room_ref))
-    IO.inspect Server.ChatRoom.all_members(String.strip(room_ref))
   end
 
-  def process(  _ , "DISCONNECT:" <> chatroom ) do
-    IO.puts chatroom
+  def process(  socket , "DISCONNECT:" <> _ ) do
+    handle_socket_terminate(socket)
   end
 
   def process(  socket , "CHAT:" <> room_ref ) do
-    IO.inspect Server.ChatRoom.all_members(String.strip(room_ref))
     handle_chat_message(socket,String.strip(room_ref))
   end
 
@@ -57,9 +55,8 @@ defmodule Server.Message do
     String.strip(message)
   end
 
-  def process(  _ , "LEAVE_CHATROOM:" <> room_ref ) do
-    String.strip(room_ref)
-    # handle_leave(socket, String.strip(room_ref))
+  def process( socket , "LEAVE_CHATROOM:" <> room_ref ) do
+    handle_chatroom_leave(socket,String.strip(room_ref))
   end
 
   def process( socket , _ ) do
@@ -80,9 +77,15 @@ defmodule Server.Message do
     read_line(socket) #ignore PORT (TCP)
     client_name = read_line(socket)
 
-    Server.ChatRoom.join(chatroom_name, 1, socket)
-    payload = "JOINED_CHATROOM: #{chatroom_name}\nSERVER_IP: #{ip_address}\nPORT: #{@port}\n"
+    room_ref = gen_chatroom_id(chatroom_name)
+    join_id = :erlang.unique_integer
+    Server.ChatRoom.join(room_ref, join_id, socket)
+
+    payload = "JOINED_CHATROOM: #{chatroom_name}\nSERVER_IP: #{ip_address}\nPORT: #{@port}\nROOM_REF: #{room_ref}\nJOIN_ID: #{join_id}\n"
     :gen_tcp.send(socket,payload)
+
+    chatroom_payload ="#{client_name} has joined this chatroom\n"
+    notify_all(chatroom_name, chatroom_payload)
   end
 
   defp handle_error(socket) do
@@ -91,29 +94,53 @@ defmodule Server.Message do
     :gen_tcp.close(socket)
   end
 
-  defp handle_chat_message(socket,room_ref) do
+  defp handle_chatroom_leave(socket, room_ref) do
     join_id = read_line(socket)
     client_name = read_line(socket)
+    # deregister PID from ChatRoom
+    Server.ChatRoom.leave(room_ref)
+    payload = "LEAVE_CHATROOM: #{room_ref}\nJOIN_ID: #{join_id}\n"
+    :gen_tcp.send(socket,payload)
+    chatroom_payload ="#{client_name} has left this chatroom\n"
+    notify_all(room_ref, chatroom_payload)
+  end
+
+  defp handle_chat_message(socket,room_ref) do
+    read_line(socket)
+    client_name = read_line(socket)
     message = read_line(socket)
+    payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{message}\n\n"
+    notify_all(room_ref, payload)
+  end
 
-
-    IO.puts join_id
-    IO.puts client_name
-    IO.puts message
-
-    notify_all(client_name, room_ref, message)
+  defp handle_socket_terminate(socket) do
+    read_line(socket) #ignore port
+    client_name = read_line(socket)
+    chatrooms_of_client = Server.ChatRoom.part_of
+    notify_all_of_disconnect(chatrooms_of_client,client_name)
+    :gen_tcp.close(socket)
   end
 
 
-
-  def notify_all(client_name, room_ref, data) do
-    payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{data}\n\n"
+  defp notify_all(room_ref, data) do
     Server.ChatRoom.broadcast(room_ref, fn members ->
       for { _, { _, socket} } <- members do
-        :gen_tcp.send(socket,payload)
+        :gen_tcp.send(socket,data)
       end
     end)
+  end
 
+  defp notify_all_of_disconnect(chatrooms,client_name) do
+    chatrooms |> Enum.map(fn(room) -> Server.ChatRoom.leave(room)
+    notify_all(room, "#{client_name} has left this chatroom\n")
+    end)
+  end
+
+
+  # --------------------- NUM GENERATOR ----------------------
+
+  defp gen_chatroom_id(chatroom) do
+    Integer.to_string(Enum.sum(to_charlist(chatroom)))
   end
 
 

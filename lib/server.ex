@@ -6,6 +6,7 @@
 # http://elixir-lang.org/docs/stable/elixir/Supervisor.html#content
 # http://elixir-lang.org/docs/stable/elixir/Task.html
 # http://elixir-lang.org/getting-started/keywords-and-maps.html#maps
+# https://elixirforum.com/t/is-there-a-simpler-way-to-generate-ids/2323
 
 defmodule Server do
 
