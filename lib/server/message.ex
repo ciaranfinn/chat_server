@@ -20,7 +20,7 @@ defmodule Server.Message do
   end
 
   def process(  _ , "KILL_SERVICE" <> _ ) do
-    System.halt
+    System.halt(0)
   end
 
   def process(  socket , "JOIN_CHATROOM:" <> room_ref ) do
@@ -95,11 +95,15 @@ defmodule Server.Message do
   defp handle_chatroom_leave(socket, room_ref) do
     join_id = read_line(socket)
     client_name = read_line(socket)
-    # deregister PID from ChatRoom
     Server.ChatRoom.leave(room_ref)
+    # deregister PID from ChatRoom
     payload = "LEFT_CHATROOM: #{room_ref}\nJOIN_ID: #{join_id}"
     :gen_tcp.send(socket,payload)
-    notify_all(room_ref,client_name, "#{client_name} has left this chatroom.")
+    notify_all(room_ref, client_name, "#{client_name} has left this chatroom.")
+
+    payload = "CHAT: #{room_ref}\nCLIENT_NAME: #{client_name}\nMESSAGE: #{client_name} has left this chatroom.\n\n"
+    :gen_tcp.send(socket,payload)
+    
   end
 
   defp handle_chat_message(socket,room_ref) do
