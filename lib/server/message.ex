@@ -80,7 +80,6 @@ defmodule Server.Message do
   defp handle_hello_message(socket,text) do
     payload = "HELO #{text}IP:#{ip_address}\nPort:#{@port}\nStudentID:13320900\n"
     :gen_tcp.send(socket,payload)
-    :gen_tcp.close(socket)
   end
 
   defp handle_new_member(socket,chatroom_name) do
