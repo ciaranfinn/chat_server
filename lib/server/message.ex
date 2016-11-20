@@ -89,7 +89,6 @@ defmodule Server.Message do
 
   defp handle_error(socket, error) do
     IO.puts error
-    :gen_tcp.close(socket)
   end
 
   defp handle_chatroom_leave(socket, room_ref) do
