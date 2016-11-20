@@ -4,8 +4,19 @@ defmodule Server.Message do
   @port Application.get_env(:server, :port)
 
   def read_line(client_socket) do
-    { _ , data} = :gen_tcp.recv(client_socket, 0)
-    action(client_socket,data)
+    {status,data} = :gen_tcp.recv(client_socket, 0)
+    case status do
+      :ok ->
+        action(client_socket,data)
+      :error ->
+        case data do
+          :closed ->
+            :ok # Allow Polling to continue
+          _ ->
+            IO.puts "Error With TCP connection"
+        end
+    end
+
   end
 
   # handle different types of chat message
@@ -118,6 +129,7 @@ defmodule Server.Message do
     client_name = read_line(socket)
     chatrooms_of_client = Server.ChatRoom.part_of
     notify_all_of_disconnect(chatrooms_of_client,client_name)
+    :gen_tcp.close(socket)
   end
 
   defp notify_all_of_disconnect(chatrooms,client_name) do
