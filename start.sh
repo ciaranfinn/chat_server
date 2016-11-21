@@ -13,6 +13,7 @@ main(){
       # Set environment variable with port number
       export DIST_SERVER_PORT=$1
       # Run elixir server
+      mix deps.get
       mix run --no-halt
     fi
   fi
